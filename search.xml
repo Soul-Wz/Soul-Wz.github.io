@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<search>
+  <entry>
+    <title>Hello World</title>
+    <url>/2022/01/11/hello-world/</url>
+    <content><![CDATA[<p>Welcome to <a href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
+<span id="more"></span>
+
+<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo new <span class="string">&quot;My New Post&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/writing.html">Writing</a></p>
+<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/server.html">Server</a></p>
+<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/generating.html">Generating</a></p>
+<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/one-command-deployment.html">Deployment</a></p>
+]]></content>
+  </entry>
+  <entry>
+    <title>Process Token 替换</title>
+    <url>/2022/01/12/Token%E6%9B%BF%E6%8D%A2/</url>
+    <content><![CDATA[<p>Process Token 替换</p>
+<span id="more"></span>
+
+<h1 id="R3获取System-EProcess"><a href="#R3获取System-EProcess" class="headerlink" title="R3获取System EProcess"></a>R3获取System EProcess</h1><ol>
+<li> 定位到NT执行体模块的内存地址</li>
+</ol>
+<p>这里借助了EnumDeviceDrivers函数去获取系统中的所有设备驱动程序的加载地址。</p>
+<p><img src="media/c1bd534d64079fbad37aa1e5a550b987.png"></p>
+<p>这一步需要注意一点，NT模块名字在不同的环境下名字不同，因此不能直接写死。</p>
+<p><img src="media/f7fe4a1c240689e73c4aca40058707ee.jpeg" alt="C:\\Users\\jiabin3\\Documents\\My
+Knowledge\\temp\\e68cfb15-03d0-4a29-9826-e8772f41d636\\128\\index_files\\c94cf827-ad9d-4687-8fca-bab5b591972f.jpg"></p>
+<ol>
+<li> 获取PsInitialSystemProcess动态执行地址</li>
+</ol>
+<p>根据官方文档的描述，在NT执行体模块中有一个导出变量PsInitialSystemProcess，其指向System<br>Eprocess的地址。</p>
+<p><img src="media/5c4858166db9c043446231b99e4f534c.png" alt="C:\\Users\\jiabin3\\Documents\\My
+Knowledge\\temp\\e68cfb15-03d0-4a29-9826-e8772f41d636\\128\\index_files\\46740dcb-8d22-4b52-83d5-e62447f902eb.png"></p>
+<p>因此就可以通过PsInitialSystemProcess获取其值了。</p>
+<p><img src="media/62a9d589efcda95b380ea3d6a80925a7.png"></p>
+<ol>
+<li> 通过EPROCESS遍历进程（ActiveProcessLinks）,找到目标</li>
+</ol>
+<p><img src="media/052cc71b9159cb8447961cc81efe6e2c.png" alt="C:\\Users\\jiabin3\\Documents\\My
+Knowledge\\temp\\e68cfb15-03d0-4a29-9826-e8772f41d636\\128\\index_files\\4cae3a7a-233d-4f1a-bac2-0409009f4d7d.png"></p>
+<p><img src="media/b4c7f04f32358be50ba12555cfeed42f.png"></p>
+<h1 id="权限提升"><a href="#权限提升" class="headerlink" title="权限提升"></a>权限提升</h1><ol>
+<li> 访问令牌替换</li>
+</ol>
+<p>通常使用高权限进程（system）“偷“来的令牌来创建一个新进程。</p>
+<p>具体利用方法，放到第三小节单独进行阐述。</p>
+<ol>
+<li> 命令管道的利用</li>
+</ol>
+<p>核心：ImpersonateNamedPipeClient函数，服务端进程模拟已连接的客户端进程。</p>
+<p>以SeImpersonatePrivilege权限去启动命名管道服务端进行监听，与system权限的客户端进行连接，可以利用客户端将权限提升至<br>System 权限</p>
+<p><img src="media/1d3550120e0cfd7a948c39c4d54c3be7.png"></p>
+<ol>
+<li> DLL劫持</li>
+</ol>
+<p>Windows程序启动的时候需要DLL。如果这些DLL<br>不存在，则可以通过在应用程序要查找的位置放置恶意DLL来提权。通常，Windows应用程序有其预定义好的搜索DLL的路径，它会根据下面的顺序进行搜索：</p>
+<p><img src="media/93dcd2a09834f8689e764bd80120cb2d.png"></p>
+<ol>
+<li> 映像劫持</li>
+</ol>
+<p>通过修改注册表键值HKEY_LOCAL_MACHINESOFTWAREMicrosoftWindows<br>NTCurrentVersionImage File Execution Options来达到劫持目的。放置恶意DLL来提权</p>
+<ol>
+<li> 劫持环境变量$path</li>
+</ol>
+<p>当系统的环境变量$PATH满足以下条件时，会造成提权漏洞</p>
+<ul>
+<li><p>  文件夹当前用户可写</p>
+</li>
+<li><p>  路径在c:\windows\system32\之前</p>
+</li>
+</ul>
+<h1 id="Token替换方式"><a href="#Token替换方式" class="headerlink" title="Token替换方式"></a>Token替换方式</h1><ol>
+<li> Token指针替换（_EX_FAST_REF替换）</li>
+</ol>
+<p><img src="media/ef00c924869af6b2e192e92e2ad0eeae.png"></p>
+<p>将当前进程 EPROCESS 中存储的 Token 指针替换为 System 进程的 Token<br>指针。<img src="media/8fa26365487da2b6d834513a62f2e15e.png"></p>
+<p><img src="media/3401c459fb166336ffa15b475fa9615e.png"></p>
+<ol>
+<li> Token中的成员替换</li>
+</ol>
+<p>将当前进程 EPROCESS 的成员 Token 指针指向的 Token 块中的数据替换成 System<br>进程拥有的 Token 块的数据</p>
+<p><img src="media/c248277aa1e61ea5ccd4a9560c329bb5.png"></p>
+<p>将Present和Enabled的值更改为SYSTEM进程令牌的所有权限。</p>
+<p><img src="media/3375b082fbf94c912ddf3c4ef977376b.png" alt="C:\\Users\\jiabin3\\Documents\\My
+Knowledge\\temp\\b3057e77-1c2b-4962-a420-dbb5338cbe27\\128\\index_files\\4c98465b-5835-47c0-99c9-2bfa31b3d559.png"></p>
+<ol>
+<li> 通过Windows API窃取令牌</li>
+</ol>
+<p>通过OpenProcessToken获取system进程的访问令牌，然后通过DuplicateTokenEx复制Token。最后用复制的令牌运行目标进程。</p>
+<p><img src="media/c7a3905e4f183b2450d0925e4172a5f2.png"></p>
+<h1 id="防护措施"><a href="#防护措施" class="headerlink" title="防护措施"></a>防护措施</h1><ol>
+<li> SACL记录访问事件(winlogon.exe)—检测</li>
+</ol>
+<p>此方法可针对通过OpenProcessToken、DuplicateTokenEx窃取高权限令牌。(记录在ETW)</p>
+<p><img src="media/337219a8c9ac39d6845213ffef21b914.png"></p>
+<ol>
+<li> Token 地址匹配</li>
+</ol>
+<p>恶意进程窃取令牌目的是为了起一个新的进程。因此可以提前记录system token address.</p>
+<p>Hook CreateProcessWithToken去验证token地址(父进程与system)是否一致。</p>
+<p>地址获取：EPROCESS-&gt;EX_FAST_REF-&gt;object &amp; 0xFFFFFFF0</p>
+<ol>
+<li> Hook DuplicateToeknEx(可能有误报)</li>
+</ol>
+<p>拦截system token 被复制。</p>
+<ol>
+<li> Token 跟踪</li>
+</ol>
+<p>Hook<br>CreateProcess当有新的进程（cmd）启动时候，复制一份token。当此进程有DuplicateToeknEx、CloseHandle等操作，则对token进行验证，若发生变化则可以说明此进程进行了token替换。</p>
+<h1 id="参考链接"><a href="#参考链接" class="headerlink" title="参考链接"></a>参考链接</h1><p><a href="https://www.ired.team/">https://www.ired.team/</a></p>
+<p><a href="https://www.ired.team/offensive-security/privilege-escalation/windows-namedpipes-privilege-escalation">https://www.ired.team/offensive-security/privilege-escalation/windows-namedpipes-privilege-escalation</a></p>
+]]></content>
+  </entry>
+</search>
